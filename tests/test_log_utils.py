@@ -6,6 +6,9 @@ from src.log_utils import append_log
 
 from src.log_utils import summarize_logs
 
+from src.log_utils import show_csv_rows
+
+from src.log_utils import show_summary
 
 def test_normalize_minutes_removes_japanese_fun():
     result = normalize_minutes("60分")
@@ -88,3 +91,236 @@ def test_summarize_logs_returns_total_minutes(tmp_path):
     total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-03-31")
 
     assert total_minutes == 75
+
+def test_summarize_logs_returns_daily_total_for_target_date(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-03-30", "前日作業", 20)
+    append_log(csv_path, "2026-03-31", "Python", 30)
+    append_log(csv_path, "2026-03-31", "pytest", 45)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-03-31")
+
+    assert daily_total == 75
+
+def test_summarize_logs_returns_daily_rows_for_target_date(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-03-30", "前日作業", 20)
+    append_log(csv_path, "2026-03-31", "Python", 30)
+    append_log(csv_path, "2026-03-31", "pytest", 45)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-03-31")
+
+    assert len(daily_rows) == 2
+    assert daily_rows[0]["日付"] == "2026-03-31"
+    assert daily_rows[0]["作業内容"] == "Python"
+    assert daily_rows[0]["作業時間(分)"] == "30"
+    assert daily_rows[1]["日付"] == "2026-03-31"
+    assert daily_rows[1]["作業内容"] == "pytest"
+    assert daily_rows[1]["作業時間(分)"] == "45"
+
+def test_summarize_logs_returns_daily_count_for_target_date(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-03-30", "前日作業", 20)
+    append_log(csv_path, "2026-03-31", "Python", 30)
+    append_log(csv_path, "2026-03-31", "pytest", 45)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-03-31")
+
+    assert daily_count == 2
+
+def test_summarize_logs_returns_total_count(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-03-30", "前日作業", 20)
+    append_log(csv_path, "2026-03-31", "Python", 30)
+    append_log(csv_path, "2026-03-31", "pytest", 45)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-03-31")
+
+    assert total_count == 3
+
+def test_summarize_logs_returns_total_minutes_across_all_dates(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-03-30", "前日作業", 20)
+    append_log(csv_path, "2026-03-31", "Python", 30)
+    append_log(csv_path, "2026-03-31", "pytest", 45)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-03-31")
+
+    assert total_minutes == 95
+
+def test_summarize_logs_returns_zero_when_target_date_has_no_rows(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-03-30", "前日作業", 20)
+    append_log(csv_path, "2026-03-31", "Python", 30)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-04-01")
+
+    assert daily_count == 0
+    assert daily_total == 0
+    assert daily_rows == []
+
+def test_summarize_logs_keeps_total_values_even_when_target_date_has_no_rows(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-03-30", "前日作業", 20)
+    append_log(csv_path, "2026-03-31", "Python", 30)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-04-01")
+
+    assert total_count == 2
+    assert total_minutes == 50
+
+def test_summarize_logs_returns_all_zero_for_header_only_csv(tmp_path):
+    csv_path = tmp_path / "log.csv"
+    csv_path.write_text("日付,作業内容,作業時間(分)\n", encoding="utf-8-sig")
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-04-01")
+
+    assert total_count == 0
+    assert total_minutes == 0
+    assert daily_count == 0
+    assert daily_total == 0
+    assert daily_rows == []
+
+def test_summarize_logs_with_missing_csv_file(tmp_path):
+    csv_path = tmp_path / "missing.csv"
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(csv_path, "2026-04-01")
+
+    assert total_count == 0
+    assert total_minutes == 0
+    assert daily_count == 0
+    assert daily_total == 0
+    assert daily_rows == []
+
+def test_append_log_accepts_string_path(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(str(csv_path), "2026-04-01", "文字列パス確認", 15)
+
+    text = csv_path.read_text(encoding="utf-8-sig")
+
+    assert "2026-04-01" in text
+    assert "文字列パス確認" in text
+    assert "15" in text
+
+def test_summarize_logs_accepts_string_path(tmp_path):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-04-01", "文字列パス集計", 25)
+
+    total_count, total_minutes, daily_count, daily_total, daily_rows = summarize_logs(str(csv_path), "2026-04-01")
+
+    assert total_count == 1
+    assert total_minutes == 25
+    assert daily_count == 1
+    assert daily_total == 25
+    assert daily_rows[0]["作業内容"] == "文字列パス集計"
+
+def test_show_csv_rows_prints_saved_rows(tmp_path, capsys):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-04-01", "表示確認", 25)
+
+    show_csv_rows(csv_path)
+
+    captured = capsys.readouterr()
+
+    assert "2026-04-01" in captured.out
+    assert "表示確認" in captured.out
+    assert "25" in captured.out
+
+def test_show_summary_prints_summary_values(capsys):
+    show_summary("2026-03-31", 3, 95, 2, 75, [
+        {"日付": "2026-03-31", "作業内容": "Python", "作業時間(分)": "30"},
+        {"日付": "2026-03-31", "作業内容": "pytest", "作業時間(分)": "45"},
+    ])
+
+    captured = capsys.readouterr()
+
+    assert "2026-03-31" in captured.out
+    assert "3" in captured.out
+    assert "95" in captured.out
+    assert "2" in captured.out
+    assert "75" in captured.out
+    assert "Python" in captured.out
+    assert "pytest" in captured.out
+
+def test_show_summary_prints_zero_daily_values_when_no_target_rows(capsys):
+    show_summary("2026-04-01", 2, 50, 0, 0, [])
+
+    captured = capsys.readouterr()
+
+    assert "2026-04-01" in captured.out
+    assert "2" in captured.out
+    assert "50" in captured.out
+
+def test_show_csv_rows_with_missing_csv_file(tmp_path, capsys):
+    csv_path = tmp_path / "missing.csv"
+
+    show_csv_rows(csv_path)
+
+    captured = capsys.readouterr()
+
+    assert captured.out is not None
+
+def test_show_csv_rows_with_header_only_csv(tmp_path, capsys):
+    csv_path = tmp_path / "log.csv"
+    csv_path.write_text("日付,作業内容,作業時間(分)\n", encoding="utf-8-sig")
+
+    show_csv_rows(csv_path)
+
+    captured = capsys.readouterr()
+
+    assert "--- CSVの中身 ---" in captured.out
+
+def test_show_csv_rows_prints_message_when_csv_file_is_missing(tmp_path, capsys):
+    csv_path = tmp_path / "missing.csv"
+
+    show_csv_rows(csv_path)
+
+    captured = capsys.readouterr()
+
+    assert "--- CSVの中身 ---" in captured.out
+    assert "CSVファイルがまだありません。" in captured.out
+
+def test_show_csv_rows_accepts_string_path(tmp_path, capsys):
+    csv_path = tmp_path / "log.csv"
+
+    append_log(csv_path, "2026-04-01", "文字列パス表示", 10)
+
+    show_csv_rows(str(csv_path))
+
+    captured = capsys.readouterr()
+
+    assert "2026-04-01" in captured.out
+    assert "文字列パス表示" in captured.out
+    assert "10" in captured.out
+
+def test_append_log_creates_parent_directories(tmp_path):
+    csv_path = tmp_path / "data" / "logs" / "log.csv"
+
+    append_log(csv_path, "2026-04-01", "親フォルダ作成確認", 20)
+
+    assert csv_path.exists()
+    text = csv_path.read_text(encoding="utf-8-sig")
+    assert "2026-04-01" in text
+    assert "親フォルダ作成確認" in text
+    assert "20" in text
+
+def test_append_log_accepts_string_path_and_creates_parent_directories(tmp_path):
+    csv_path = tmp_path / "data" / "logs" / "log.csv"
+
+    append_log(str(csv_path), "2026-04-02", "文字列パス親フォルダ確認", 35)
+
+    assert csv_path.exists()
+    text = csv_path.read_text(encoding="utf-8-sig")
+    assert "2026-04-02" in text
+    assert "文字列パス親フォルダ確認" in text
+    assert "35" in text

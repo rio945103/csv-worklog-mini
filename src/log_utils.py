@@ -1,10 +1,11 @@
 import csv
-
+from pathlib import Path
 
 def normalize_minutes(minutes_str):
     minutes_str = minutes_str.strip()
     minutes_str = minutes_str.replace("分", "")
     minutes_str = minutes_str.replace(" ", "").replace("　", "")
+    minutes_str = minutes_str.translate(str.maketrans("０１２３４５６７８９", "0123456789"))
     return minutes_str
 
 
@@ -22,10 +23,12 @@ def input_minutes():
 
 
 def append_log(csv_path, date_str, work_str, minutes):
+    csv_path = Path(csv_path)
+
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     file_exists = csv_path.exists()
 
-    with open(csv_path, mode="a", newline="", encoding="utf-8-sig") as f:
+    with open(csv_path, mode="a", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f)
 
         if not file_exists:
@@ -33,22 +36,32 @@ def append_log(csv_path, date_str, work_str, minutes):
 
         writer.writerow([date_str, work_str, minutes])
 
-
 def show_csv_rows(csv_path):
+    csv_path = Path(csv_path)
+
     print()
     print("--- CSVの中身 ---")
+
+    if not csv_path.exists():
+        print("CSVファイルがまだありません。")
+        return
+
     with open(csv_path, mode="r", encoding="utf-8-sig") as f:
-        reader = csv.reader(f)
+        reader = csv.DictReader(f)
         for row in reader:
             print(row)
 
-
 def summarize_logs(csv_path, target_date):
+    csv_path = Path(csv_path)
+
     total_minutes = 0
     count = 0
     daily_total_minutes = 0
     daily_count = 0
     daily_rows = []
+
+    if not csv_path.exists():
+        return count, total_minutes, daily_count, daily_total_minutes, daily_rows
 
     with open(csv_path, mode="r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)

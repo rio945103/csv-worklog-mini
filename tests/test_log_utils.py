@@ -10,6 +10,16 @@ from src.log_utils import show_csv_rows
 
 from src.log_utils import show_summary
 
+from src.log_utils import (
+    append_log,
+    input_date,
+    input_minutes,
+    normalize_minutes,
+    show_csv_rows,
+    show_summary,
+    summarize_logs,
+)
+
 def test_normalize_minutes_removes_japanese_fun():
     result = normalize_minutes("60分")
     assert result == "60"
@@ -324,3 +334,21 @@ def test_append_log_accepts_string_path_and_creates_parent_directories(tmp_path)
     assert "2026-04-02" in text
     assert "文字列パス親フォルダ確認" in text
     assert "35" in text
+
+def test_input_date_returns_valid_date(monkeypatch):
+    monkeypatch.setattr("builtins.input", lambda _: "2026-04-02")
+
+    result = input_date()
+
+    assert result == "2026-04-02"
+
+def test_input_date_retries_until_valid(monkeypatch, capsys):
+    inputs = iter(["2026/04/02", "2026-04-02"])
+    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+
+    result = input_date()
+
+    captured = capsys.readouterr()
+
+    assert result == "2026-04-02"
+    assert "日付は YYYY-MM-DD 形式で入力してください。" in captured.out

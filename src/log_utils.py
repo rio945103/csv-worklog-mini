@@ -1,5 +1,6 @@
 import csv
 from pathlib import Path
+from datetime import datetime
 
 def normalize_minutes(minutes_str):
     minutes_str = minutes_str.strip()
@@ -96,3 +97,13 @@ def show_summary(target_date, count, total_minutes, daily_count, daily_total_min
     print(f"--- {target_date} の明細 ---")
     for i, row in enumerate(daily_rows, start=1):
         print(f"{i}. {row['作業内容']} / {row['作業時間(分)']}分")
+
+def input_date():
+    while True:
+        date_str = input("日付を入力してください (例: 2026-03-21): ")
+
+        try:
+            datetime.strptime(date_str, "%Y-%m-%d")
+            return date_str
+        except ValueError:
+            print("日付は YYYY-MM-DD 形式で入力してください。例: 2026-03-21")
